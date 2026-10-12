@@ -1,3 +1,14 @@
 {
-  "projects": []
+  "projects": [
+    {
+      "slug": "standing-desk-timer",
+      "name": "standing-desk-timer",
+      "repo": "git@github.com:bm-code/standing-desk.git",
+      "tags": [],
+      "paths": {
+        "mac-personal": "/Users/benimorales/Proyectos/standing-desk-timer"
+      },
+      "created": "2026-10-12"
+    }
+  ]
 }
