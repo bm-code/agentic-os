@@ -147,11 +147,36 @@ function homePage() {
 function registerDialog() {
   modal('Registrar proyecto', `
     <form id="regForm" class="stack">
-      <label class="field">Ruta de la carpeta del proyecto en este equipo<input type="text" name="path" placeholder="/Users/tu/Proyectos/mi-app  ·  C:\\dev\\mi-app" required></label>
+      <label class="field">Carpeta del proyecto en este equipo
+        <span class="row" style="flex-wrap:nowrap"><input type="text" name="path" placeholder="/Users/tu/Proyectos/mi-app  ·  C:\\dev\\mi-app" required><button type="button" id="browseBtn">Examinar…</button></span>
+      </label>
+      <p class="empty" id="pickNote" hidden></p>
       <label class="field">Nombre (opcional)<input type="text" name="name"></label>
       <p class="empty">Esto solo lo añade al registro. Para generar su contexto y sus agentes, abre Claude en el proyecto y ejecuta <code>/aos-register</code>.</p>
       <div class="row"><button class="primary">Registrar</button></div>
     </form>`);
+  $('#browseBtn').addEventListener('click', async (e) => {
+    const btn = e.target, note = $('#pickNote'), f = $('#regForm');
+    btn.disabled = true;
+    btn.textContent = 'Esperando…';
+    note.hidden = false;
+    note.textContent = 'Elige la carpeta en la ventana del sistema (puede aparecer detrás del navegador).';
+    try {
+      const r = await api('/api/pick-folder', { method: 'POST' });
+      if (r.cancelled) { note.hidden = true; return; }
+      f.path.value = r.path;
+      if (!f.name.value) f.name.placeholder = r.name;
+      note.textContent = r.isRepo ? '' : 'Esta carpeta no es un repositorio git: haz git init y un primer commit antes de lanzar tareas.';
+      note.className = r.isRepo ? 'empty' : 'empty err';
+      note.hidden = r.isRepo;
+    } catch (err) {
+      note.textContent = err.message;
+      note.className = 'empty err';
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Examinar…';
+    }
+  });
   $('#regForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     try {

@@ -51,7 +51,7 @@ cd agentic-os && npm run dashboard      # http://localhost:4747
 Déjalo abierto en una terminal o en segundo plano; es lo único que necesitas lanzar.
 
 ### 3. Registra el proyecto
-En **Inicio → “+ Registrar proyecto”** pega la **ruta de la carpeta** (`/Users/tu/Proyectos/mi-app` o `C:\dev\mi-app`) y, si quieres, un nombre. Se abre la vista del proyecto. Ya puedes crear tareas y lanzarlas, usando los agentes globales (Haiku/Sonnet/Opus).
+En **Inicio → “+ Registrar proyecto”** pulsa **Examinar…**: se abre el selector de carpetas de tu sistema (Finder, Explorador de Windows, o zenity/kdialog en Linux), eliges la carpeta y se rellena la ruta. Si no se abre, puedes escribirla a mano (`/Users/tu/Proyectos/mi-app` o `C:\dev\mi-app`). Si la carpeta no es un repo git, te avisa. Añade un nombre si quieres. Se abre la vista del proyecto. Ya puedes crear tareas y lanzarlas, usando los agentes globales (Haiku/Sonnet/Opus).
 
 ### 4. Genera su contexto y sus especialistas (una vez por proyecto)
 Esto lo hace Claude analizando tu repo, y de momento se lanza desde Claude Code. Es el **único paso con terminal**:

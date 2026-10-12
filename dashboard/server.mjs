@@ -18,6 +18,7 @@ import { compactMarkdown, latestHandoff, writeHandoff } from '../scripts/lib/mem
 import { listProjectAgents } from '../scripts/lib/agents.mjs';
 import { aggregate, refreshUsage } from '../scripts/lib/usage.mjs';
 import * as G from './lib/git.mjs';
+import { pickFolder } from './lib/picker.mjs';
 import { HttpError, MODELS, activeRun, estimateComplexity, getRun, listRuns, runEvents, runInfo, startTurn, stopAll, stopRun } from './lib/runner.mjs';
 
 const PUBLIC = path.join(path.dirname(fileURLToPath(import.meta.url)), 'public');
@@ -127,6 +128,13 @@ const routes = [];
 const route = (method, pattern, handler) => routes.push({ method, re: new RegExp(`^${pattern.replace(/:(\w+)/g, '(?<$1>[\\w.-]+)')}$`), handler });
 
 route('GET', '/api/data', ({ url }) => overview(Math.min(Number(url.searchParams.get('days') || 30), 365)));
+
+route('POST', '/api/pick-folder', async () => {
+  const picked = await pickFolder();
+  if (!picked) return { cancelled: true };
+  const isRepo = await G.isRepo(picked).catch(() => false);
+  return { path: picked, name: path.basename(picked), isRepo };
+});
 
 route('POST', '/api/projects/register', async ({ body }) => {
   const localPath = String(body.path || '').trim();

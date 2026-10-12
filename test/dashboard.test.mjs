@@ -76,3 +76,16 @@ test('frontmatter de agentes', () => {
   assert.deepEqual(a.meta, { name: 'aos-x-ui', description: 'UI de x', model: 'haiku' });
   assert.equal(a.prompt, 'Cuerpo');
 });
+
+test('selector de carpetas: limpieza de ruta y comando por sistema', async () => {
+  const { cleanPath, candidates } = await import('../dashboard/lib/picker.mjs');
+  assert.equal(cleanPath('/Users/beni/Proyectos/app/\n'), '/Users/beni/Proyectos/app');
+  assert.equal(cleanPath('C:\\dev\\mi app\r\n'), 'C:\\dev\\mi app');
+  assert.equal(cleanPath('C:\\dev\\app\\'), 'C:\\dev\\app');
+  assert.equal(cleanPath('/\n'), '/');
+  assert.equal(cleanPath('D:\\\r\n'), 'D:\\');
+  assert.equal(cleanPath(''), '');
+  assert.equal(candidates('darwin')[0][0], 'osascript');
+  assert.equal(candidates('win32')[0][0], 'powershell.exe');
+  assert.deepEqual(candidates('linux').map((c) => c[0]), ['zenity', 'kdialog']);
+});
