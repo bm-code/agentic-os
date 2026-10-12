@@ -10,6 +10,7 @@ import { findProject, loadRegistry, projectDir, resolveProject, upsertProject } 
 import { addTask, completeTask, listTasks, reopenTask, sortOpen } from './lib/tasks.mjs';
 import { addDecision, buildBrief, latestHandoff, remember, writeHandoff } from './lib/memory.mjs';
 import { activeFor } from './lib/sessions.mjs';
+import { agentsSourceDir, listProjectAgents, syncProjectAgents } from './lib/agents.mjs';
 import { aggregate, fmtTokens, refreshUsage, totalTokens } from './lib/usage.mjs';
 
 const HELP = `Agentic OS — comandos:
@@ -18,6 +19,7 @@ const HELP = `Agentic OS — comandos:
   register --slug s [--name n] [--repo url] [--path p] [--tags a,b]
   task add "título" [--p P0-P3] [--tags a,b] [--due YYYY-MM-DD] [--slug s]
   task list [--all] [--slug s] | task next [--slug s] | task done|reopen <id> [--slug s]
+  agents list|sync|path [--slug s]       Agentes del proyecto (sync → <repo>/.claude/agents)
   remember "texto" [--global] [--slug s]
   decision "título" [--slug s]       (cuerpo por stdin)
   handoff [--slug s] [--session id]  (cuerpo por stdin)
@@ -112,6 +114,23 @@ const commands = {
       for (const t of shown)
         console.log(`${t.done ? '✓' : '·'} [${t.id}] (${t.prio}) ${t.title}${t.tags.length ? ' #' + t.tags.join(' #') : ''}${t.due ? ' @' + t.due : ''}`);
     } else fail(`Subcomando desconocido: task ${sub}`);
+  },
+
+  agents({ pos, opt }) {
+    const sub = pos[1] || 'list';
+    const p = currentProject(opt);
+    if (sub === 'path') return console.log(toPosix(agentsSourceDir(p.slug)));
+    if (sub === 'sync') {
+      const r = syncProjectAgents(p);
+      return console.log(r.skipped ? `✗ ${r.skipped}` : `✓ Agentes sincronizados en ${toPosix(path.join(p.paths[machineId()], '.claude', 'agents'))} (${r.synced} actualizados, ${r.removed} eliminados; excluidos de git en local)`);
+    }
+    if (sub === 'list') {
+      const list = listProjectAgents(p.slug);
+      if (!list.length) return console.log('Sin agentes de proyecto. Genera el roster con /aos-agents.');
+      for (const a of list) console.log(`${a.name.padEnd(28)} ${(a.meta.model || 'inherit').padEnd(7)} ${a.meta.description || ''}`);
+      return;
+    }
+    fail(`Subcomando desconocido: agents ${sub}`);
   },
 
   remember({ pos, opt }) {

@@ -89,3 +89,13 @@ test('hecha → reabierta conserva prioridad, tags y fecha, sin líneas en blanc
     fs.rmSync(dir, { recursive: true, force: true });
   }
 });
+
+test('detalle de tarea: frontmatter, especificación e historial ida y vuelta', async () => {
+  const { parseDetail, formatDetail } = await import('../scripts/lib/taskdetail.mjs');
+  const d = { meta: { complexity: 'M', status: 'plan-ready', branch: 'aos/k3f9' }, spec: 'Hacer X.\n\n- con Y', history: ['2026-10-12 14:03 · plan · ok'] };
+  const back = parseDetail(formatDetail(d));
+  assert.equal(back.meta.complexity, 'M');
+  assert.equal(back.meta.branch, 'aos/k3f9');
+  assert.equal(back.spec, 'Hacer X.\n\n- con Y');
+  assert.deepEqual(back.history, d.history);
+});

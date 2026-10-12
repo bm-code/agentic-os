@@ -4,6 +4,8 @@ Hub de memoria, tareas y consumo para Claude Code. Node ≥ 20, **sin dependenci
 
 - `scripts/lib/`: lógica compartida (registry, tasks, memory, usage, transcript, sessions, paths, config).
 - `scripts/aos.mjs`: CLI que usan las skills. `scripts/hooks/`: SessionStart y SessionEnd/PreCompact. `scripts/statusline.mjs`.
+- `dashboard/`: servidor + UI. `lib/runner.mjs` lanza `claude -p --output-format stream-json` por tarea; `lib/git.mjs` envuelve git; toda la API exige el token de arranque (`checkRequest`). No relajes esa seguridad: el servidor ejecuta código.
+- `scripts/lib/agents.mjs`: agentes por proyecto → `<repo>/.claude/agents` (excluidos de git en local). `claude/agents/` son los globales por niveles de coste.
 - `claude/`: plantillas que `scripts/install.mjs` copia a `~/.claude` sustituyendo `{{AOS}}` por la ruta del repo. Tras cambiar algo en `claude/`, vuelve a ejecutar el instalador.
 - `projects/`, `registry/`, `memory/`: datos del usuario (se sincronizan con git). `.local/` es local y está ignorado.
 

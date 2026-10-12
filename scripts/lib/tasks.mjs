@@ -123,3 +123,24 @@ export function completeTask(slug, id) {
 export function reopenTask(slug, id) {
   return moveTask(slug, id, false);
 }
+
+/** Edita título/prioridad/tags/fecha de una tarea en su sitio. */
+export function updateTask(slug, id, patch) {
+  const { file, md } = load(slug);
+  const lines = md.split(/\r?\n/);
+  const idx = lines.findIndex((l) => parseTaskLine(l)?.id === id);
+  if (idx === -1) return null;
+  const current = parseTaskLine(lines[idx]);
+  const next = { ...current };
+  if (typeof patch.title === 'string' && patch.title.trim()) next.title = patch.title.trim();
+  if (/^P[0-3]$/.test(patch.prio || '')) next.prio = patch.prio;
+  if (Array.isArray(patch.tags)) next.tags = patch.tags;
+  if (patch.due !== undefined) next.due = patch.due || null;
+  lines[idx] = (lines[idx].match(/^\s*/)[0] || '') + formatTask(next);
+  fs.writeFileSync(file, lines.join('\n'));
+  return next;
+}
+
+export function findTask(slug, id) {
+  return listTasks(slug).find((t) => t.id === id) || null;
+}

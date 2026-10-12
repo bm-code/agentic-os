@@ -7,6 +7,7 @@ import { loadConfig } from '../lib/config.mjs';
 import { resolveProject } from '../lib/registry.mjs';
 import { buildBrief } from '../lib/memory.mjs';
 import { markActive, logSession } from '../lib/sessions.mjs';
+import { syncProjectAgents } from '../lib/agents.mjs';
 
 try {
   const input = await readStdinJson();
@@ -22,6 +23,11 @@ try {
   if (input.source === 'startup') logSession({ event: 'start', session: input.session_id, slug: project?.slug || null, cwd });
 
   if (project) {
+    try {
+      syncProjectAgents(project); // agentes del proyecto → <repo>/.claude/agents (excluidos de git en local)
+    } catch {
+      /* nunca bloquear el arranque */
+    }
     process.stdout.write(buildBrief(project, cfg) + '\n');
   } else if (input.source === 'startup') {
     process.stdout.write('Agentic OS: este directorio no está registrado. Si es un proyecto de trabajo habitual, sugiere una vez /aos-register (sin insistir).\n');
