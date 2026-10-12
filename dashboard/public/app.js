@@ -433,8 +433,9 @@ function projectPage(slug, taskId) {
     $('#tCx').onchange = saveTask;
     $('#tTitle').onchange = saveTask;
     const sel = $('#runSel');
-    if (sel) sel.onchange = () => stream(sel.value);
-    if (t.runs[0]) stream(t.runs[0].id);
+    const isLive = (id) => t.runs.find((r) => r.id === id)?.status === 'running';
+    if (sel) sel.onchange = () => stream(sel.value, isLive(sel.value));
+    if (t.runs[0]) stream(t.runs[0].id, isLive(t.runs[0].id));
   }
 
   async function saveTask() {
@@ -470,7 +471,10 @@ function projectPage(slug, taskId) {
   }
 
   // ── feed en directo (SSE) ──
-  function stream(runId) {
+  // `live`: la ejecución sigue en marcha. Si no, es un histórico que se reproduce sin efectos
+  // (el servidor reenvía también el evento `end`; reaccionar a él provocaba un bucle de refrescos).
+  const endHandled = new Set();
+  function stream(runId, live) {
     state.es?.close();
     state.runId = runId;
     const feed = $('#feed');
@@ -486,8 +490,14 @@ function projectPage(slug, taskId) {
       const atBottom = stick();
       renderEvent(feed, ev, tools);
       if (atBottom) feed.scrollTop = feed.scrollHeight;
-      if (ev.kind === 'tool_result') { clearTimeout(gitTimer); gitTimer = setTimeout(loadGit, 1500); }
-      if (ev.kind === 'end') { es.close(); setTimeout(() => refreshAll(), 300); toast(ev.status === 'done' ? (ev.taskStatus === 'plan-ready' ? 'Plan listo para revisar' : 'Turno terminado: revisa los cambios') : ev.status === 'stopped' ? 'Ejecución detenida' : 'La ejecución terminó con error', { error: ev.status === 'error' }); }
+      if (ev.kind === 'tool_result' && live) { clearTimeout(gitTimer); gitTimer = setTimeout(loadGit, 1500); }
+      if (ev.kind === 'end') {
+        es.close();
+        if (!live || endHandled.has(runId)) return;
+        endHandled.add(runId);
+        setTimeout(() => refreshAll(), 300);
+        toast(ev.status === 'done' ? (ev.taskStatus === 'plan-ready' ? 'Plan listo para revisar' : 'Turno terminado: revisa los cambios') : ev.status === 'stopped' ? 'Ejecución detenida' : 'La ejecución terminó con error', { error: ev.status === 'error' });
+      }
     };
     es.onerror = () => es.close();
   }
