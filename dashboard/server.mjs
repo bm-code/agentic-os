@@ -9,7 +9,7 @@ import { exec } from 'node:child_process';
 import { machineId, readText, toPosix } from '../scripts/lib/paths.mjs';
 import { loadConfig } from '../scripts/lib/config.mjs';
 import { findProject, loadRegistry, projectDir } from '../scripts/lib/registry.mjs';
-import { addTask, completeTask, listTasks } from '../scripts/lib/tasks.mjs';
+import { addTask, completeTask, listTasks, reopenTask } from '../scripts/lib/tasks.mjs';
 import { compactMarkdown, latestHandoff } from '../scripts/lib/memory.mjs';
 import { aggregate, refreshUsage } from '../scripts/lib/usage.mjs';
 
@@ -73,9 +73,9 @@ const server = http.createServer(async (req, res) => {
       if (!title?.trim() || !/^P[0-3]$/.test(prio)) return send(res, 400, { error: 'título o prioridad no válidos' });
       return send(res, 200, addTask(m[1], { title, prio }));
     }
-    if (req.method === 'POST' && (m = url.pathname.match(/^\/api\/projects\/([a-z0-9-]+)\/tasks\/([a-z0-9]+)\/done$/))) {
+    if (req.method === 'POST' && (m = url.pathname.match(/^\/api\/projects\/([a-z0-9-]+)\/tasks\/([a-z0-9]+)\/(done|reopen)$/))) {
       if (!findProject(m[1])) return send(res, 404, { error: 'proyecto no encontrado' });
-      const t = completeTask(m[1], m[2]);
+      const t = m[3] === 'done' ? completeTask(m[1], m[2]) : reopenTask(m[1], m[2]);
       return t ? send(res, 200, t) : send(res, 404, { error: 'tarea no encontrada' });
     }
     if (req.method === 'GET' && (url.pathname === '/' || url.pathname === '/index.html')) {

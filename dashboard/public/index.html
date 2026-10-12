@@ -73,7 +73,11 @@
   pre { white-space: pre-wrap; font: 12px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; color: var(--text-2); margin: 8px 0 0; max-height: 260px; overflow: auto; }
   .empty { color: var(--muted); font-size: 13px; }
   .err { color: var(--crit); }
-  .done-count { color: var(--muted); font-size: 12px; margin-top: 6px; }
+  .done-list { margin-top: 8px; padding-top: 6px; }
+  .done-list .task span { color: var(--muted); text-decoration: line-through; }
+  .toast { position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%); display: none; align-items: center; gap: 12px; background: var(--text); color: var(--surface); padding: 10px 14px; border-radius: 10px; box-shadow: 0 6px 24px rgba(0,0,0,.25); font-size: 14px; max-width: calc(100% - 32px); }
+  .toast.show { display: flex; }
+  .toast button { background: transparent; color: var(--surface); border-color: currentColor; font-weight: 600; }
 </style>
 </head>
 <body>
@@ -106,6 +110,7 @@
   <h2 style="margin:22px 0 10px">Proyectos y tareas</h2>
   <section class="projects" id="projects"></section>
 </main>
+<div class="toast" id="toast" role="status" aria-live="polite"><span id="toastMsg"></span><button id="undo">Deshacer</button></div>
 
 <script>
 const MODELS = ['opus', 'sonnet', 'haiku', 'otro'];
@@ -203,12 +208,12 @@ function projects(d) {
   const order = { P0: 0, P1: 1, P2: 2, P3: 3 };
   $('projects').innerHTML = d.projects.map((p) => {
     const open = p.tasks.filter((t) => !t.done).sort((a, b) => order[a.prio] - order[b.prio]);
-    const done = p.tasks.length - open.length;
+    const done = p.tasks.filter((t) => t.done).sort((a, b) => (b.doneAt || '').localeCompare(a.doneAt || ''));
     return `<article class="card project" data-slug="${esc(p.slug)}">
       <h3>${esc(p.name)}</h3>
       <div class="path">${p.localPath ? esc(p.localPath) : 'No clonado en este equipo'}</div>
       ${open.length ? open.map((t) => `<label class="task"><input type="checkbox" data-id="${esc(t.id)}"><span><span class="prio ${t.prio}">${t.prio}</span> ${esc(t.title)}${t.due ? ` <span class="empty">@${esc(t.due)}</span>` : ''}</span></label>`).join('') : '<p class="empty">Sin tareas abiertas.</p>'}
-      ${done ? `<div class="done-count">${done} hecha${done > 1 ? 's' : ''}</div>` : ''}
+      ${done.length ? `<details class="done-list"><summary>${done.length} hecha${done.length > 1 ? 's' : ''} · desmarca para reabrir</summary>${done.map((t) => `<label class="task"><input type="checkbox" checked data-id="${esc(t.id)}"><span><span class="prio ${t.prio}">${t.prio}</span> ${esc(t.title)}${t.doneAt ? ` · ${esc(t.doneAt)}` : ''}</span></label>`).join('')}</details>` : ''}
       <form class="addtask"><select name="prio" aria-label="Prioridad"><option>P0</option><option>P1</option><option selected>P2</option><option>P3</option></select><input type="text" name="title" placeholder="Nueva tarea…" required><button>Añadir</button></form>
       ${p.handoff ? `<details><summary>Última sesión · ${esc(p.handoff.date)}${p.handoff.auto ? ' (automático)' : ''}</summary><pre>${esc(p.handoff.text)}</pre></details>` : ''}
     </article>`;
@@ -220,10 +225,31 @@ async function post(url, body) {
   if (!r.ok) throw new Error((await r.json()).error || r.statusText);
 }
 
+let undoTimer, lastDone = null;
+function toast(msg, undo) {
+  $('toastMsg').textContent = msg;
+  $('undo').style.display = undo ? '' : 'none';
+  $('toast').classList.add('show');
+  clearTimeout(undoTimer);
+  undoTimer = setTimeout(() => { $('toast').classList.remove('show'); lastDone = null; }, 6000);
+}
+async function setDone(slug, id, done) {
+  await post(`/api/projects/${slug}/tasks/${id}/${done ? 'done' : 'reopen'}`);
+  await load();
+}
 $('projects').addEventListener('change', async (e) => {
   if (!e.target.matches('input[type=checkbox]')) return;
-  const slug = e.target.closest('[data-slug]').dataset.slug;
-  try { await post(`/api/projects/${slug}/tasks/${e.target.dataset.id}/done`); load(); } catch (err) { alert(err.message); e.target.checked = false; }
+  const slug = e.target.closest('[data-slug]').dataset.slug, id = e.target.dataset.id, done = e.target.checked;
+  try {
+    await setDone(slug, id, done);
+    lastDone = done ? { slug, id } : null;
+    toast(done ? 'Tarea completada' : 'Tarea reabierta', done);
+  } catch (err) { alert(err.message); e.target.checked = !done; }
+});
+$('undo').addEventListener('click', async () => {
+  if (!lastDone) return;
+  const { slug, id } = lastDone; lastDone = null;
+  try { await setDone(slug, id, false); toast('Tarea reabierta', false); } catch (err) { alert(err.message); }
 });
 $('projects').addEventListener('submit', async (e) => {
   e.preventDefault();

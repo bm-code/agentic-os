@@ -7,7 +7,7 @@ import { spawnSync } from 'node:child_process';
 import { AOS_HOME, CLAUDE_HOME, machineId, readJson, readStdin, slugify, toPosix } from './lib/paths.mjs';
 import { loadConfig } from './lib/config.mjs';
 import { findProject, loadRegistry, projectDir, resolveProject, upsertProject } from './lib/registry.mjs';
-import { addTask, completeTask, listTasks, sortOpen } from './lib/tasks.mjs';
+import { addTask, completeTask, listTasks, reopenTask, sortOpen } from './lib/tasks.mjs';
 import { addDecision, buildBrief, latestHandoff, remember, writeHandoff } from './lib/memory.mjs';
 import { activeFor } from './lib/sessions.mjs';
 import { aggregate, fmtTokens, refreshUsage, totalTokens } from './lib/usage.mjs';
@@ -17,7 +17,7 @@ const HELP = `Agentic OS — comandos:
   brief [--slug s]                   Brief que se inyecta al iniciar sesión
   register --slug s [--name n] [--repo url] [--path p] [--tags a,b]
   task add "título" [--p P0-P3] [--tags a,b] [--due YYYY-MM-DD] [--slug s]
-  task list [--all] [--slug s] | task next [--slug s] | task done <id> [--slug s]
+  task list [--all] [--slug s] | task next [--slug s] | task done|reopen <id> [--slug s]
   remember "texto" [--global] [--slug s]
   decision "título" [--slug s]       (cuerpo por stdin)
   handoff [--slug s] [--session id]  (cuerpo por stdin)
@@ -99,6 +99,9 @@ const commands = {
     } else if (sub === 'done') {
       const t = completeTask(p.slug, pos[2]) || fail(`No encuentro la tarea ${pos[2]}`);
       console.log(`✓ Hecha: [${t.id}] ${t.title}`);
+    } else if (sub === 'reopen') {
+      const t = reopenTask(p.slug, pos[2]) || fail(`No encuentro la tarea ${pos[2]}`);
+      console.log(`✓ Reabierta: [${t.id}] (${t.prio}) ${t.title}`);
     } else if (sub === 'next') {
       const t = sortOpen(listTasks(p.slug))[0];
       console.log(t ? `[${t.id}] (${t.prio}) ${t.title}` : 'No hay tareas abiertas.');

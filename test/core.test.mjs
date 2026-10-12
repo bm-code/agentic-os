@@ -69,3 +69,23 @@ test('uso: deduplica bloques del mismo mensaje y agrega por proyecto/modelo', ()
   assert.equal(agg.sessions[0].tokens, 230);
   assert.equal(modelFamily('claude-sonnet-5-5'), 'sonnet');
 });
+
+test('hecha → reabierta conserva prioridad, tags y fecha, sin líneas en blanco extra', async () => {
+  const fs = await import('node:fs');
+  const path = await import('node:path');
+  const { AOS_HOME } = await import('../scripts/lib/paths.mjs');
+  const { addTask, completeTask, reopenTask } = await import('../scripts/lib/tasks.mjs');
+  const slug = `__test-${process.pid}`;
+  const dir = path.join(AOS_HOME, 'projects', slug);
+  try {
+    const t = addTask(slug, { title: 'Tarea A', prio: 'P1', tags: ['x'], due: '2026-11-01' });
+    completeTask(slug, t.id);
+    const back = reopenTask(slug, t.id);
+    assert.deepEqual({ ...back, doneAt: undefined }, { ...t, doneAt: undefined });
+    const md = fs.readFileSync(path.join(dir, 'tasks.md'), 'utf8');
+    assert.ok(!/\n{3,}/.test(md), 'sin líneas en blanco dobles');
+    assert.match(md, /## Pendientes\n\n- \[ \] \(P1\) Tarea A #x @2026-11-01/);
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});

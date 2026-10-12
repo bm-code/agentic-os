@@ -65,6 +65,7 @@ function tasksFile(slug) {
 
 function load(slug) {
   const file = tasksFile(slug);
+  fs.mkdirSync(path.dirname(file), { recursive: true });
   const md = fs.existsSync(file) ? fs.readFileSync(file, 'utf8') : `# Tareas\n\n## Pendientes\n\n## Hechas\n`;
   return { file, md };
 }
@@ -101,14 +102,24 @@ export function addTask(slug, { title, prio = 'P2', tags = [], due = null }) {
   return task;
 }
 
-/** Marca como hecha y la mueve a "## Hechas". */
-export function completeTask(slug, id) {
+function moveTask(slug, id, done) {
   const { file, md } = load(slug);
   const lines = md.split(/\r?\n/);
   const idx = lines.findIndex((l) => parseTaskLine(l)?.id === id);
   if (idx === -1) return null;
-  const task = { ...parseTaskLine(lines[idx]), done: true, doneAt: today() };
+  const task = { ...parseTaskLine(lines[idx]), done, doneAt: done ? today() : null };
   lines.splice(idx, 1);
-  fs.writeFileSync(file, insertUnder(lines.join('\n'), '## Hechas', formatTask(task)));
+  const out = insertUnder(lines.join('\n'), done ? '## Hechas' : '## Pendientes', formatTask(task));
+  fs.writeFileSync(file, out.replace(/\n{3,}/g, '\n\n'));
   return task;
+}
+
+/** Marca como hecha y la mueve a "## Hechas". */
+export function completeTask(slug, id) {
+  return moveTask(slug, id, true);
+}
+
+/** Deshace un "hecha": vuelve a "## Pendientes" con su prioridad, tags y fecha. */
+export function reopenTask(slug, id) {
+  return moveTask(slug, id, false);
 }
