@@ -1,0 +1,38 @@
+{
+  "model": "opusplan",
+  "env": {
+    "AGENTIC_OS_HOME": "{{AOS}}"
+  },
+  "statusLine": {
+    "type": "command",
+    "command": "node \"{{AOS}}/scripts/statusline.mjs\"",
+    "padding": 0
+  },
+  "hooks": {
+    "SessionStart": [
+      { "hooks": [{ "type": "command", "command": "node \"{{AOS}}/scripts/hooks/session-start.mjs\"", "timeout": 15 }] }
+    ],
+    "PreCompact": [
+      { "hooks": [{ "type": "command", "command": "node \"{{AOS}}/scripts/hooks/session-end.mjs\" compact", "timeout": 15 }] }
+    ],
+    "SessionEnd": [
+      { "hooks": [{ "type": "command", "command": "node \"{{AOS}}/scripts/hooks/session-end.mjs\"", "timeout": 15 }] }
+    ]
+  },
+  "permissions": {
+    "allow": [
+      "Bash(node \"{{AOS}}/scripts/aos.mjs\":*)",
+      "Read({{AOS}}/**)",
+      "Edit({{AOS}}/projects/**)",
+      "Edit({{AOS}}/memory/**)",
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
+      "Bash(git branch:*)",
+      "Bash(git show:*)",
+      "Bash(ls:*)",
+      "Bash(pwd)"
+    ],
+    "additionalDirectories": ["{{AOS}}"]
+  }
+}

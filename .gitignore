@@ -1,0 +1,5 @@
+# Datos locales de cada equipo (caché de uso, id de máquina, logs)
+.local/
+node_modules/
+.DS_Store
+Thumbs.db

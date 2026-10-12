@@ -1,0 +1,22 @@
+{
+  "brief": {
+    "maxContextLines": 25,
+    "maxTasks": 5,
+    "maxHandoffLines": 15
+  },
+  "handoff": {
+    "autoOnCompact": true,
+    "autoOnSessionEnd": true
+  },
+  "sync": {
+    "pullOnSessionStart": false,
+    "commitOnSessionEnd": false
+  },
+  "usage": {
+    "staleSeconds": 120,
+    "contextWindow": 200000
+  },
+  "dashboard": {
+    "port": 4747
+  }
+}
